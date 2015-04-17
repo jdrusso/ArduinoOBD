@@ -27,7 +27,7 @@
 // this defines the format of data streaming
 // FORMAT_BIN is required by Freematics OBD iOS App
 // FORMAT_CSV is for text-based output
-#define STREAM_FORMAT FORMAT_BIN
+#define STREAM_FORMAT FORMAT_CSV
 
 /* Default streaming baudrates:
    9600bps for BLE
@@ -65,8 +65,8 @@
 /**************************************
 * LCD module (uncomment only one)
 **************************************/
-LCD_SSD1289 lcd; /* 3.2" SSD12389 based TFT LCD */
-//LCD_ILI9325D lcd; /* 2.8" ILI9325 based TFT LCD */
+//LCD_SSD1289 lcd; /* 3.2" SSD12389 based TFT LCD */
+LCD_ILI9325D lcd; /* 2.8" ILI9325 based TFT LCD */
 //LCD_ILI9341 lcd; /* 2.4" ILI9341 based SPI TFT LCD */
 //LCD_Null lcd;
 
