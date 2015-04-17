@@ -222,9 +222,9 @@ void initScreen()
     lcd.setCursor(184, 2);
     lcd.print("ELAPSED:");
     lcd.setCursor(184, 5);
-    lcd.print("DISTANCE:        km");
+    lcd.print("DISTANCE:        mi");
     lcd.setCursor(184, 8);
-    lcd.print("AVG SPEED:       kph");
+    lcd.print("AVG SPEED:       mph");
     lcd.setCursor(184, 11);
     lcd.print("ALTITUDE:        m");
 
@@ -555,6 +555,7 @@ void logOBDData(byte pid)
     if (pid == PID_SPEED) {
         // estimate distance travelled since last speed update
         distance += (uint32_t)(value + lastSpeed) * (logger.dataTime - lastSpeedTime) / 6000;
+        distance *= .6214;
         // display speed
         lcd.setFontSize(FONT_SIZE_MEDIUM);
         lcd.setCursor(250, 5);
@@ -563,6 +564,7 @@ void logOBDData(byte pid)
         lcd.printInt(((uint16_t)distance % 1000) / 100);
         // calculate and display average speed
         int avgSpeed = (unsigned long)distance * 3600 / (millis() - startTime);
+        avgSpeed *= .6214;
         lcd.setCursor(250, 8);
         lcd.printInt(avgSpeed);
 
