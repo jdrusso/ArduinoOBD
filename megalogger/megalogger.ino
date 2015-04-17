@@ -129,6 +129,7 @@ void showPIDData(byte pid, int value)
         break;
     case PID_SPEED:
         if (value < 1000) {
+            value = value * .6214; //Convert to mph
             lcd.setFontSize(FONT_SIZE_XLARGE);
             lcd.setCursor(50, 2);
             setColorByValue(value, 60, 100, 160);
@@ -208,7 +209,7 @@ void initScreen()
     lcd.setColor(RGB16_CYAN);
     lcd.setFontSize(FONT_SIZE_SMALL);
     lcd.setCursor(110, 4);
-    lcd.print("km/h");
+    lcd.print("MPH");
     lcd.setCursor(110, 8);
     lcd.print("RPM");
     lcd.setCursor(110, 11);
