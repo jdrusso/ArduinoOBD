@@ -19,7 +19,7 @@
 * Data streaming options
 **************************************/
 // enable(1)/disable(0) data streaming
-#define ENABLE_DATA_OUT 1
+#define ENABLE_DATA_OUT 0
 
 // uses software(1)/hardware(0) serial for data streaming
 #define USE_SOFTSERIAL 0
@@ -40,7 +40,7 @@
 #define GPS_DATA_TIMEOUT 2000 /* ms */
 
 // GPS baudrate could be 38400bps or 115200bps
-#define GPS_BAUDRATE 115200 /* bps */
+#define GPS_BAUDRATE 38400 /* bps */
 
 /**************************************
 * Accelerometer & Gyro
@@ -60,8 +60,8 @@
 * LCD module (uncomment only one)
 **************************************/
 //LCD_R61581 lcd; /* 3.5" CTE35IPS/R61581 based LCD */
-LCD_SSD1289 lcd; /* 3.2" SSD12389 based LCD */
-//LCD_ILI9325D lcd; /* 2.8" ILI9325 based LCD */
+//LCD_SSD1289 lcd; /* 3.2" SSD12389 based LCD */
+LCD_ILI9325D lcd; /* 2.8" ILI9325 based LCD */
 //LCD_ILI9341 lcd; /* 2.4" ILI9341 based SPI LCD */
 //LCD_Null lcd;
 

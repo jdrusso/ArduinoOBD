@@ -14,6 +14,7 @@
 #include <TinyGPS.h>
 #include <I2Cdev.h>
 #include <MPU9150.h>
+#include <MPU6050.h>
 #include "config.h"
 #if ENABLE_DATA_LOG
 #include <SD.h>
@@ -61,6 +62,8 @@ static int gpsSpeed = -1;
 #endif
 
 byte state = 0;
+
+int missedResults;
 
 void processAccelerometer();
 void processGPS();
@@ -135,15 +138,16 @@ void showPIDData(byte pid, int value)
         lcd.setFontSize(FONT_SIZE_XLARGE);
         lcd.setCursor(32, 6);
         if (value >= 10000) break;
-        setColorByValue(value, 2500, 3500, 5000);
+        setColorByValue(value, 5000, 6500, 7000);
         lcd.printInt(value, 4);
         break;
     case PID_SPEED:
         if (value < 1000) {
             lcd.setFontSize(FONT_SIZE_XLARGE);
             lcd.setCursor(50, 2);
-            setColorByValue(value, 60, 100, 160);
-            lcd.printInt(value, 3);
+            setColorByValue(value, 60, 70, 160);
+            // Convert to MPH
+            lcd.printInt(value*.621, 3);
 
 #if USE_GPS
             if (gpsSpeed != -1) {
@@ -177,11 +181,11 @@ void showPIDData(byte pid, int value)
         setColorByValue(value, 50, 75, 100);
         lcd.printInt(value, 2);
         break;
-    case PID_ENGINE_FUEL_RATE:
-        if (value < 100) {
+    case PID_COOLANT_TEMP:
+        if (value >= 0 && value < 300) {
             lcd.setFontSize(FONT_SIZE_MEDIUM);
-            lcd.setCursor(92, 24);
-            lcd.printInt(value, 2);
+            lcd.setCursor(72, 24);
+            lcd.printInt(value, 3);
         }
         break;
     case PID_INTAKE_TEMP:
@@ -234,7 +238,7 @@ void initScreen()
     lcd.setColor(RGB16_CYAN);
     lcd.setFontSize(FONT_SIZE_SMALL);
     lcd.setCursor(110, 4);
-    lcd.print("km/h");
+    lcd.print("mph");
     lcd.setCursor(110, 8);
     lcd.print("RPM");
     lcd.setCursor(110, 11);
@@ -247,9 +251,9 @@ void initScreen()
     lcd.setCursor(184, 2);
     lcd.print("ELAPSED:");
     lcd.setCursor(184, 5);
-    lcd.print("DISTANCE:        km");
+    lcd.print("DISTANCE:        mi");
     lcd.setCursor(184, 8);
-    lcd.print("AVG SPEED:       kph");
+    lcd.print("AVG SPEED:       mph");
     lcd.setCursor(184, 11);
     lcd.print("ALTITUDE:        m");
 
@@ -258,7 +262,7 @@ void initScreen()
     lcd.setCursor(18, 21);
     lcd.print("THROTTLE:       %");
     lcd.setCursor(18, 24);
-    lcd.print("FUEL RATE:      L/h");
+    lcd.print("COOLANT:        C");
     lcd.setCursor(18, 27);
     lcd.print("INTAKE:         C");
 
@@ -312,7 +316,7 @@ bool checkSD()
     pinMode(SS, OUTPUT);
 
     lcd.setFontSize(FONT_SIZE_MEDIUM);
-    if (card.init(SPI_HALF_SPEED, SD_CS_PIN)) {
+    if (card.init(3, SD_CS_PIN)) {
         const char* type;
         switch(card.type()) {
         case SD_CARD_TYPE_SD1:
@@ -322,16 +326,18 @@ bool checkSD()
             type = "SD2";
             break;
         case SD_CARD_TYPE_SDHC:
-            type = "SDHC";
+            type = "\nSDHC";
             break;
         default:
             type = "SDx";
         }
 
+//        lcd.print("\n\n\n");
         lcd.print(type);
         lcd.write(' ');
         if (!volume.init(card)) {
             lcd.print("No FAT!");
+            lcd.print(card.errorCode(), HEX);
             return false;
         }
 
@@ -341,13 +347,13 @@ bool checkSD()
         volumesize >>= 10;
 
         lcd.print((int)volumesize);
-        lcd.print("MB");
+        lcd.print("MB\n");
     } else {
         lcd.println("No SD Card");
         return false;
     }
 
-    if (!SD.begin(SD_CS_PIN)) {
+    if (!SD.begin(2000000, SD_CS_PIN)) {
         lcd.println("Bad SD");
         return false;
     }
@@ -544,13 +550,13 @@ void logOBDData(byte pid, int value)
         // display speed
         lcd.setFontSize(FONT_SIZE_MEDIUM);
         lcd.setCursor(250, 5);
-        lcd.printInt(distance / 1000);
+        lcd.printInt(distance * .621 / 1000);
         lcd.write('.');
         lcd.printInt(((uint16_t)distance % 1000) / 100);
         // calculate and display average speed
         int avgSpeed = (unsigned long)distance * 3600 / (millis() - startTime);
         lcd.setCursor(250, 8);
-        lcd.printInt(avgSpeed);
+        lcd.printInt(avgSpeed * .621); // Convert to mph
 
         lastSpeed = value;
         lastSpeedTime = logger.dataTime;
@@ -588,8 +594,8 @@ void showECUCap()
     }
     int values[sizeof(pidlist)];
     bool scanned = false;
-    bool touched = false;
-    for (uint32_t t = millis(); millis() - t < 10000 & !touched; ) {
+    bool touched = true;
+    for (uint32_t t = millis(); millis() - t < 3000; ) {
       for (byte i = 0, n = 4; i < sizeof(pidlist) / sizeof(pidlist[0]); i++) {
           byte pid = pgm_read_byte(pidlist + i);
           if (obd.isValidPID(pid)) {
@@ -612,7 +618,8 @@ void showECUCap()
           }
           if (!touched) {
             int x, y;
-            touched = lcd.getTouchData(x, y);
+            touched = false;
+//            touched = lcd.getTouchData(x, y);
           }
        }
        scanned = true;
@@ -636,7 +643,7 @@ void reconnect()
         if (obd.readPID(PID_RPM, value))
             break;
         
-        obd.sleep();
+//        obd.sleep();
         Narcoleptic.delay(4000);
     }
     // re-initialize
@@ -723,7 +730,7 @@ void setup()
     lcd.setFontSize(FONT_SIZE_MEDIUM);
     lcd.setColor(0xFFE0);
     lcd.println("MEGA LOGGER - OBD-II/GPS/MEMS");
-    lcd.println();
+//    lcd.println();
     lcd.setColor(RGB16_WHITE);
 
 #if ENABLE_DATA_LOG
@@ -754,6 +761,7 @@ void setup()
             break;
         }
     } while (millis() - t <= 2000);
+//    lcd.println("GPS NOW AVAILABLE");
     showStates();
 #endif
 
@@ -792,6 +800,7 @@ void setup()
     startTime = millis();
     lastSpeedTime = startTime;
     lastRefreshTime = millis();
+    missedResults = 0;
 }
 
 
@@ -799,12 +808,12 @@ void loop()
 {
     static byte index2 = 0;
     const byte pids[]= {PID_RPM, PID_SPEED, PID_THROTTLE, PID_ENGINE_LOAD};
-    const byte pids2[] = {PID_COOLANT_TEMP, PID_INTAKE_TEMP, PID_ENGINE_FUEL_RATE};
+    const byte pids2[] = {PID_COOLANT_TEMP, PID_INTAKE_TEMP};//, PID_ENGINE_FUEL_RATE};
     int values[sizeof(pids)] = {0};
     uint32_t pidTime = millis();
     // read multiple OBD-II PIDs
     byte results = obd.readPID(pids, sizeof(pids), values);
-    pidTime = millis() - pidTime;
+    pidTime = millis() - pidTime; // This now stores the time it takes to read the PIDs
     if (results == sizeof(pids)) {
       for (byte n = 0; n < sizeof(pids); n++) {
         logOBDData(pids[n], values[n]);
@@ -830,17 +839,20 @@ void loop()
         lcd.setFontSize(FONT_SIZE_MEDIUM);
         lcd.setCursor(250, 2);
         lcd.print(buf);
-        // display OBD time
+        // display OBD time -- freq
         if (results) {
           lcd.setFontSize(FONT_SIZE_SMALL);
           lcd.setCursor(242, 26);
           lcd.print((uint16_t)(pidTime / results));
           lcd.print("ms ");
+          missedResults = 0;
+        } else {
+          missedResults ++;
         }
         lastRefreshTime = logger.dataTime;
     }
 
-    if (obd.errors >= 3) {
+    if (obd.errors >= 3 || missedResults >= 3) {
         reconnect();
     }
 

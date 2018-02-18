@@ -84,7 +84,8 @@ public:
     void initSender()
     {
 #if ENABLE_DATA_OUT
-        SerialRF.begin(STREAM_BAUDRATE);
+// Blocks on this for some reason?
+//        SerialRF.begin(STREAM_BAUDRATE);
 #endif
     }
     byte genTimestamp(char* buf, bool absolute)
@@ -128,9 +129,9 @@ public:
 #else
         char tmp[12];
         genTimestamp(tmp, false);
-        SerialRF.print(tmp);
 #endif
 #if ENABLE_DATA_OUT
+        SerialRF.print(tmp);
         SerialRF.write(buf, len);
         SerialRF.println();
 #endif
